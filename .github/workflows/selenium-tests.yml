@@ -67,7 +67,7 @@ jobs:
   run-tests:
     name: Run Selenium Tests + Self-Healing Agent
     runs-on: self-hosted
-    needs: start-app
+    needs: setup-env
 
     steps:
       - name: Checkout repository
