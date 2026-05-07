@@ -164,12 +164,21 @@ jobs:
           ref: gh-pages
           path: gh-pages
 
-      - name: Copy Allure history
+      - name: Get Allure history
         continue-on-error: true
         run: |
-          if [ -d "gh-pages/history" ]; then
-            cp -r gh-pages/history reports/allure-results/history
-            echo "✅ History copied"
+          git fetch origin gh-pages:gh-pages 2>/dev/null || echo "gh-pages branch does not exist yet — first run"
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            mkdir -p gh-pages
+            git checkout gh-pages -- . 2>/dev/null || true
+            if [ -d "gh-pages/history" ]; then
+              cp -r gh-pages/history reports/allure-results/history
+              echo "History copied"
+            else
+              echo "No history folder found"
+            fi
+          else
+            echo "First run — no history to copy"
           fi
 
       - name: Generate Allure report
