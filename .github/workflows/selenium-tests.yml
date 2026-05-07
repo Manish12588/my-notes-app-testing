@@ -35,6 +35,7 @@ jobs:
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health)
             if [ "$STATUS" = "200" ]; then
               echo "✅ App is healthy (HTTP 200)"
+              echo "🌐 App running at: http://localhost:5000"
               exit 0
             fi
             echo "   Attempt $i/20 — status: $STATUS, retrying..."
@@ -207,3 +208,10 @@ jobs:
           publish_branch: gh-pages
           publish_dir: allure-history
           force_orphan: true
+
+      - name: Show allure report URL 
+        run: |
+          echo ""
+          echo "📊 Allure Report published successfully!"
+          echo "🔗 View report at: https://manish12588.github.io/my-notes-app-testing/"
+          echo ""
