@@ -19,6 +19,8 @@ jobs:
 
       - name: Start app
         run: docker compose up -d
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
       - name: Wait for app to be healthy
         run: |
@@ -34,6 +36,9 @@ jobs:
           done
           echo "❌ App failed to start"
           exit 1
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
 
   # ── Job 2: Run Tests + Self-Healing ───────────────────────────────────────
   run-tests:
