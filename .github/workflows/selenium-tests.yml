@@ -193,6 +193,12 @@ jobs:
           allure_results: reports/allure-results
           allure_report: allure-report
           allure_history: allure-history
+          keep_reports: 10
+      
+      - name: Check allure-history exists
+        run: |
+          ls -la
+          ls -la allure-history || echo "allure-history folder missing"
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
@@ -200,3 +206,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-history
+          force_orphan: true
