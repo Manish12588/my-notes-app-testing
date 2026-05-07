@@ -1,0 +1,158 @@
+name: NoteVault — Selenium Tests & Report
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+
+  # ── Job 1: Start Application ───────────────────────────────────────────────
+  start-app:
+    name: Start App via Docker Compose
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Start app
+        run: docker compose up -d
+
+      - name: Wait for app to be healthy
+        run: |
+          echo "⏳ Waiting for app..."
+          for i in {1..15}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ App is healthy (HTTP 200)"
+              exit 0
+            fi
+            echo "   Attempt $i/15 — status: $STATUS, retrying..."
+            sleep 2
+          done
+          echo "❌ App failed to start"
+          exit 1
+
+  # ── Job 2: Run Tests + Self-Healing ───────────────────────────────────────
+  run-tests:
+    name: Run Selenium Tests + Self-Healing Agent
+    runs-on: self-hosted
+    needs: start-app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install app dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+
+      - name: Install healing agent dependencies
+        run: pip install -r healing_agent/requirements.txt
+
+      - name: Register test user
+        run: python tests/setup_test_user.py
+
+      - name: Run Selenium tests
+        id: run_tests
+        run: |
+          pytest tests/test_notes_app.py -v \
+            --html=reports/report.html \
+            --self-contained-html \
+            --alluredir=reports/allure-results \
+            --no-header
+        continue-on-error: true
+
+      - name: Run self-healing agent
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "🔧 Tests failed — triggering self-healing agent..."
+          if ! curl -s http://localhost:11434 > /dev/null; then
+            echo "Starting Ollama..."
+            ollama serve &
+            sleep 5
+          fi
+          python healing_agent/agent.py
+
+      - name: Rerun tests after healing
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "🔄 Rerunning tests after healing..."
+          pytest tests/test_notes_app.py -v \
+            --html=reports/report.html \
+            --self-contained-html \
+            --alluredir=reports/allure-results \
+            --no-header
+        continue-on-error: true
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: html-test-report
+          path: reports/report.html
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results
+          path: reports/allure-results
+
+      - name: Stop app
+        if: always()
+        run: docker compose down
+
+  # ── Job 3: Publish Report to GitHub Pages ─────────────────────────────────
+  publish-report:
+    name: Publish Allure Report to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: run-tests
+    if: always()
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: allure-results
+          path: reports/allure-results
+
+      - name: Get Allure history from gh-pages
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Copy Allure history
+        continue-on-error: true
+        run: |
+          if [ -d "gh-pages/history" ]; then
+            cp -r gh-pages/history reports/allure-results/history
+            echo "✅ History copied"
+          fi
+
+      - name: Generate Allure report
+        uses: simple-elf/allure-report-action@master
+        with:
+          allure_results: reports/allure-results
+          allure_report: allure-report
+          allure_history: allure-history
+
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: allure-history
