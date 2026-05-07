@@ -32,7 +32,7 @@ jobs:
               exit 0
             fi
             echo "   Attempt $i/15 — status: $STATUS, retrying..."
-            sleep 2
+            sleep 5
           done
           echo "❌ App failed to start"
           exit 1
@@ -155,7 +155,8 @@ jobs:
         with:
           name: allure-results
           path: reports/allure-results
-
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Get Allure history from gh-pages
         uses: actions/checkout@v4
         continue-on-error: true
