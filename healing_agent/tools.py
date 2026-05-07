@@ -40,7 +40,7 @@ def run_tests() -> str:
     Returns pass/fail summary and any error messages.
     """
     result = subprocess.run(
-        ["pytest", "test_notes_app.py", "-v", "--tb=short"],
+        ["pytest", "test_notes_app.py", "-v", "--tb=short", "--no-header"],
         capture_output=True,
         text=True,
         cwd=TEST_DIR

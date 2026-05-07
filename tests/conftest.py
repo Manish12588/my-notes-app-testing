@@ -1,5 +1,8 @@
 import pytest
 import time
+import os
+import allure
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -13,6 +16,36 @@ TEST_USER = f"testuser_{int(time.time())}"
 TEST_EMAIL = f"testuser_{int(time.time())}@test.com"
 TEST_PASS = "testpass123"
 
+SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "..", "reports", "screenshots")
+SCREENSHOT_DIR = os.path.abspath(SCREENSHOT_DIR)
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when == "call" and report.failed:
+        driver = item.funcargs.get("driver") or item.funcargs.get("logged_in_driver")
+        if driver:
+            os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            test_name = item.name
+            filename = f"{test_name}_{timestamp}.png"
+            filepath = os.path.join(SCREENSHOT_DIR, filename)
+            driver.save_screenshot(filepath)
+
+            # Attach to Allure report ← ADD THIS
+            allure.attach(
+                driver.get_screenshot_as_png(),
+                name=f"screenshot_{item.name}",
+                attachment_type=allure.attachment_type.PNG
+            )
+
+            # Attach to HTML report
+            if hasattr(report, "extra"):
+                from pytest_html import extras
+                report.extra = getattr(report, "extra", [])
+                report.extra.append(extras.image(filepath))
 
 @pytest.fixture(scope="session")
 def driver():

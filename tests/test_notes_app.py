@@ -1,4 +1,5 @@
 import pytest
+import allure
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -7,6 +8,7 @@ from conftest import BASE_URL, TEST_USER, TEST_PASS, TEST_EMAIL
 
 class TestAuth:
 
+    @allure.title("Register page loads corerctly")
     def test_register_page_loads(self, driver):
         driver.get(f"{BASE_URL}/register")
         assert "Create Account" in driver.title
@@ -14,6 +16,7 @@ class TestAuth:
         assert driver.find_element(By.ID, "email").is_displayed()
         assert driver.find_element(By.ID, "password").is_displayed()
 
+    @allure.title("New user can register successfully")
     def test_register_new_user(self, driver):
         driver.get(f"{BASE_URL}/register")
         wait = WebDriverWait(driver, 10)
@@ -27,6 +30,7 @@ class TestAuth:
         wait.until(lambda d: "login" in d.current_url or "Notes" in d.title)
         assert "login" in driver.current_url or "NoteVault" in driver.title
 
+    @allure.title("Login page load successfully")
     def test_login_page_loads(self, driver):
         # Logout first to ensure we're not redirected
         driver.get(f"{BASE_URL}/logout")
@@ -37,6 +41,7 @@ class TestAuth:
         assert driver.find_element(By.ID, "identifier").is_displayed()
         assert driver.find_element(By.ID, "password").is_displayed()
 
+    @allure.title("Login successful")
     def test_successful_login(self, driver):
         driver.get(f"{BASE_URL}/logout")
         driver.get(f"{BASE_URL}/login")
@@ -48,6 +53,7 @@ class TestAuth:
         wait.until(EC.url_to_be(f"{BASE_URL}/"))
         assert driver.current_url == f"{BASE_URL}/"
 
+    @allure.title("Invalid login")
     def test_invalid_login(self, driver):
         driver.get(f"{BASE_URL}/logout")
         driver.get(f"{BASE_URL}/login")
@@ -63,6 +69,7 @@ class TestAuth:
 
 class TestNotes:
 
+    @allure.title("Notes: Dashboard load successfully")
     def test_dashboard_loads(self, logged_in_driver):
         logged_in_driver.get(BASE_URL)
         wait = WebDriverWait(logged_in_driver, 10)
@@ -72,6 +79,7 @@ class TestNotes:
             By.CSS_SELECTOR, "a.btn-nav-new"
         ).is_displayed()
 
+    @allure.title("Notes: Validate note page load successfully")
     def test_add_note_page_loads(self, logged_in_driver):
         logged_in_driver.get(f"{BASE_URL}/note/add")
         wait = WebDriverWait(logged_in_driver, 10)
@@ -80,6 +88,7 @@ class TestNotes:
         assert logged_in_driver.find_element(By.ID, "title").is_displayed()
         assert logged_in_driver.find_element(By.ID, "content").is_displayed()
 
+    @allure.title("Notes: Create note")
     def test_create_note(self, logged_in_driver):
         logged_in_driver.get(f"{BASE_URL}/note/add")
         wait = WebDriverWait(logged_in_driver, 10)
@@ -91,6 +100,7 @@ class TestNotes:
         wait.until(EC.title_contains("NoteVault"))
         assert "NoteVault" in logged_in_driver.title
 
+    @allure.title("Notes: Search note")
     def test_search_note(self, logged_in_driver):
         logged_in_driver.get(BASE_URL)
         wait = WebDriverWait(logged_in_driver, 10)
@@ -103,6 +113,7 @@ class TestNotes:
         cards = logged_in_driver.find_elements(By.CSS_SELECTOR, ".note-card")
         assert len(cards) >= 1
 
+    @allure.title("Notes: View note")
     def test_view_note(self, logged_in_driver):
         logged_in_driver.get(BASE_URL)
         wait = WebDriverWait(logged_in_driver, 10)
@@ -112,6 +123,7 @@ class TestNotes:
         assert logged_in_driver.find_element(By.CSS_SELECTOR, ".view-title").is_displayed()
         assert logged_in_driver.find_element(By.CSS_SELECTOR, ".view-content").is_displayed()
 
+    @allure.title("Notes: Edit note")
     def test_edit_note(self, logged_in_driver):
         logged_in_driver.get(BASE_URL)
         wait = WebDriverWait(logged_in_driver, 10)
@@ -126,6 +138,7 @@ class TestNotes:
         wait.until(EC.title_contains("NoteVault"))
         assert "NoteVault" in logged_in_driver.title
 
+    @allure.title("Notes: Validate notes linking in sidebar")
     def test_sidebar_all_notes_link(self, logged_in_driver):
         logged_in_driver.get(BASE_URL)
         wait = WebDriverWait(logged_in_driver, 10)
@@ -133,6 +146,7 @@ class TestNotes:
         all_notes = logged_in_driver.find_element(By.CSS_SELECTOR, "a.sidebar-link")
         assert all_notes.is_displayed()
 
+    @allure.title("Notes: Logout successfully")
     def test_logout(self, logged_in_driver):
         logged_in_driver.get(BASE_URL)
         wait = WebDriverWait(logged_in_driver, 10)
