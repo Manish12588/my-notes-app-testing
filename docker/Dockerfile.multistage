@@ -1,0 +1,44 @@
+# ── Stage 1: Build dependencies ───────────────────────────────────────────
+FROM python:3.12-alpine AS builder
+
+WORKDIR /app
+
+# Install build-time system deps
+RUN apk add --no-cache \
+    gcc=15.2.0-r2 \
+    musl-dev=1.2.5-r23 \
+    libffi-dev=3.5.2-r0
+
+COPY app/requirements.txt .
+
+# Install into isolated prefix so we can copy cleanly to final stage
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+# ── Stage 2: Lean final image ─────────────────────────────────────────────
+FROM python:3.12-alpine
+
+WORKDIR /app
+
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy only application source (not junk files — see .dockerignore)
+COPY app/ .
+
+# Create user + instance dir with correct ownership in one layer
+RUN adduser -D appuser && \
+    mkdir -p /app/instance && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+# Runtime environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    FLASK_ENV=production
+
+VOLUME ["/app/instance"]
+EXPOSE 5000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "app:app"]
