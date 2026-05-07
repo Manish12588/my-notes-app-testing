@@ -15,7 +15,6 @@ jobs:
     env:
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
 
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,7 +37,33 @@ jobs:
           echo "❌ App failed to start"
           exit 1
         
-  # ── Job 2: Run Tests + Self-Healing ───────────────────────────────────────
+
+  # ── Job 2: Setup Virtual Environment ──────────────────────────────────────
+  setup-env:
+    name: Setup Python Virtual Environment
+    runs-on: self-hosted
+    needs: start-app
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create virtual environment
+        run: python3 -m venv venv
+
+      - name: Install all dependencies
+        run: |
+          venv/bin/pip install -r app/requirements.txt
+          venv/bin/pip install -r tests/requirements.txt
+          venv/bin/pip install -r healing_agent/requirements.txt
+
+      - name: Cache venv
+        uses: actions/cache@v4
+        with:
+          path: venv
+          key: venv-${{ hashFiles('**/requirements.txt') }}
+
+  # ── Job 3: Run Tests + Self-Healing ───────────────────────────────────────
   run-tests:
     name: Run Selenium Tests + Self-Healing Agent
     runs-on: self-hosted
@@ -48,14 +73,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install app dependencies
-        run: pip install -r app/requirements.txt
+      - name: Restore venv
+        uses: actions/cache@v4
+        with:
+          path: venv
+          key: venv-${{ hashFiles('**/requirements.txt') }}
 
-      - name: Install test dependencies
-        run: pip install -r tests/requirements.txt
-
-      - name: Install healing agent dependencies
-        run: pip install -r healing_agent/requirements.txt
+      - name: Add venv to PATH
+        run: echo "$GITHUB_WORKSPACE/venv/bin" >> $GITHUB_PATH
 
       - name: Register test user
         run: python tests/setup_test_user.py
@@ -110,7 +135,7 @@ jobs:
         if: always()
         run: docker compose down
 
-  # ── Job 3: Publish Report to GitHub Pages ─────────────────────────────────
+  # ── Job 4: Publish Report to GitHub Pages ─────────────────────────────────
   publish-report:
     name: Publish Allure Report to GitHub Pages
     runs-on: ubuntu-latest
