@@ -71,7 +71,22 @@ pip install -r healing_agent/requirements.txt
 
 ## 🧪 How to demo the self-healing agent
 
-### Step 1 — Confirm tests are passing
+### Option 1 — Using the shell script (recommended)
+
+The easiest way to run the full demo from project root:
+
+```bash
+# Break locator + run tests + heal + rerun — all in one command
+./tests/run_tests.sh --break --heal
+```
+
+This handles everything automatically — starts the app, breaks the locator, runs tests, triggers the agent, reruns, and stops the app.
+
+---
+
+### Option 2 — Manual step by step
+
+#### Step 1 — Confirm tests are passing
 
 ```bash
 pytest tests/test_notes_app.py -v
@@ -81,7 +96,7 @@ Expected: `13 passed`
 
 ---
 
-### Step 2 — Break a locator (simulate a UI change)
+#### Step 2 — Break a locator (simulate a UI change)
 
 ```bash
 sed -i 's/By.ID, "identifier"/By.ID, "user-input"/g' tests/test_notes_app.py
@@ -105,7 +120,7 @@ FAILED tests/test_notes_app.py::TestAuth::test_invalid_login
 
 ---
 
-### Step 3 — Run the self-healing agent
+#### Step 3 — Run the self-healing agent
 
 ```bash
 python healing_agent/agent.py
@@ -170,7 +185,9 @@ main()
 
 ```
 langchain-ollama      # ChatOllama — runs Ollama models in LangChain
-langchain-core        # LLM invocation
+langchain             # Agent framework
+langchain-core        # LLM invocation, tool decorator
+langgraph             # ReAct execution engine
 selenium              # Headless browser for DOM capture
 webdriver-manager     # Auto-downloads matching ChromeDriver
 beautifulsoup4        # HTML parsing — extracts clean element list from DOM
