@@ -10,7 +10,7 @@ jobs:
 
   # ── Job 1: Start Application ───────────────────────────────────────────────
   start-app:
-    name: Start App via Docker Compose
+    name: Start App
     runs-on: self-hosted
     env:
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
@@ -47,7 +47,7 @@ jobs:
 
   # ── Job 2: Setup Virtual Environment ──────────────────────────────────────
   setup-env:
-    name: Setup Python Virtual Environment
+    name: Setup Python venv
     runs-on: self-hosted
     needs: start-app
 
@@ -72,7 +72,7 @@ jobs:
 
   # ── Job 3: Run Tests + Self-Healing ───────────────────────────────────────
   run-tests:
-    name: Run Selenium Tests + Self-Healing Agent
+    name: Selenium Tests + Self-Healing Agent
     runs-on: self-hosted
     needs: setup-env
 
@@ -144,7 +144,7 @@ jobs:
 
   # ── Job 4: Publish Report to GitHub Pages ─────────────────────────────────
   publish-report:
-    name: Publish Allure Report to GitHub Pages
+    name: Publish Report to GitHub Pages
     runs-on: ubuntu-latest
     needs: run-tests
     if: always()
